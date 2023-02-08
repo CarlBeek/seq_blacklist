@@ -1,4 +1,5 @@
+*-*-*
 /venv
-contributions*.json
+contributions.json
 transcript.json
 blacklist_flush.sql

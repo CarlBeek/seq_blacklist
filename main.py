@@ -31,6 +31,9 @@ def get_blacklist(contributions: Dict[Any, Any], transcript: Sequence[Any]) -> L
     trans_set = set(transcript)
     return list(contrib_set.difference(trans_set))
 
+def generate_blacklist_json(blacklist: Sequence[str]) -> str:
+    return json.dumps(blacklist)
+
 def generate_blacklist_flush_sql(blacklist: Sequence[str]) -> str:
     return 'DELETE * FROM contributors WHERE uid IN {0};'.format(tuple(blacklist))
 
@@ -45,6 +48,8 @@ def main(trans_path: str='./transcript.json', contrib_path: str='./contributions
     transcript = transcript_to_participants(trans_raw)
     contributions = contributors_to_participants(contrib_raw)
     blacklist = get_blacklist(contributions, transcript)
+    json_blacklist = generate_blacklist_json(blacklist)
+    save_str(json_blacklist, './blacklist.json')
     if output_sql:
         sql = generate_blacklist_flush_sql(blacklist)
         save_str(sql, './blacklist_flush.sql')
