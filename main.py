@@ -36,7 +36,7 @@ def generate_blacklist_json(blacklist: Sequence[str]) -> str:
     return json.dumps(blacklist, indent=4)
 
 def generate_blacklist_flush_sql(blacklist: Sequence[str]) -> str:
-    return 'DELETE * FROM contributors WHERE uid IN {0};'.format(tuple(blacklist))
+    return 'DELETE FROM contributors WHERE uid IN {0};'.format(tuple(blacklist))
 
 def save_str(str: str, path: str) -> None:
     with open(path, 'w+') as f:
