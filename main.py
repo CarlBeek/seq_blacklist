@@ -54,6 +54,37 @@ def clearlist_intersection(blacklist: List[str], clearlist: List[str]) -> List[s
                 act_blacklisted.append(b_id)
     return act_blacklisted
 
+
+def print_blacklist_stats(
+        transcript_participants: Sequence[str],
+        contribution_participants: Sequence[str],
+        blacklist: Sequence[str],
+    ) -> None:
+    print(
+        f'''
+        Blacklist Stats:
+        {len(contribution_participants):d} \t total contributors
+        {len(transcript_participants):d} \t included participants
+        {len(blacklist):d} \t blacklisted participants
+        {len(blacklist)/len(contribution_participants)*100:.2f}% \t of total participants blacklisted
+        '''
+    )
+
+def print_clearlist_stats(
+        blacklist: Sequence[str],
+        potential_clearlist: Sequence[str],
+        clearlist: Sequence[str],
+    ) -> None:
+    print(
+        f'''
+        Clearlist Stats:
+        {len(potential_clearlist):d} \t participants requested to be cleared
+        {len(clearlist):d} \t eligible to be cleared
+        {len(clearlist)/len(potential_clearlist)*100:.2f}% \t of the potential clearlist are eligible
+        {len(clearlist)/len(blacklist)*100:.2f}% \t of the blacklist will be cleared
+        '''
+    )
+
 @click.command()
 @click.option('--trans-path', default='./transcript.json', help='Path to the transcript file.')
 @click.option('--contrib-path', default='./contributions.json', help='Path to the contributions file.')
@@ -64,17 +95,21 @@ def main(trans_path: str, contrib_path: str, output_sql: bool, output_json: bool
     verify_file_age(trans_path, contrib_path)
     trans_raw = load_transcript(trans_path)
     contrib_raw = load_contributions(contrib_path)
-    transcript = transcript_to_participants(trans_raw)
-    contributions = contributors_to_participants(contrib_raw)
-    blacklist = get_blacklist(contributions, transcript)
+    transcript_participants = transcript_to_participants(trans_raw)
+    contribution_participants = contributors_to_participants(contrib_raw)
+    blacklist = get_blacklist(contribution_participants, transcript_participants)
+    print_blacklist_stats(transcript_participants, contribution_participants, blacklist)
     if output_json:
         json_blacklist = generate_blacklist_json(blacklist)
         save_str(json_blacklist, './blacklist.json')
     if clearlist_path is not None:
         potential_clearlist = get_clearlist(clearlist_path)
-        blacklist = clearlist_intersection(blacklist, potential_clearlist)
+        clearlist = clearlist_intersection(blacklist, potential_clearlist)
+        print_clearlist_stats(blacklist, potential_clearlist, clearlist)
     if output_sql:
         sql = generate_blacklist_flush_sql(blacklist)
+        if clearlist_path is not None:
+            sql = generate_blacklist_flush_sql(clearlist)
         save_str(sql, './blacklist_flush.sql')
 
 
