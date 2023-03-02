@@ -1,3 +1,4 @@
+import click
 import json
 import os
 
@@ -32,7 +33,7 @@ def get_blacklist(contributions: Dict[Any, Any], transcript: Sequence[Any]) -> L
     return list(contrib_set.difference(trans_set))
 
 def generate_blacklist_json(blacklist: Sequence[str]) -> str:
-    return json.dumps(blacklist)
+    return json.dumps(blacklist, indent=4)
 
 def generate_blacklist_flush_sql(blacklist: Sequence[str]) -> str:
     return 'DELETE * FROM contributors WHERE uid IN {0};'.format(tuple(blacklist))
@@ -41,15 +42,21 @@ def save_str(str: str, path: str) -> None:
     with open(path, 'w+') as f:
         f.write(str)
 
-def main(trans_path: str='./transcript.json', contrib_path: str='./contributions.json', output_sql=True) -> None:
+@click.command()
+@click.option('--trans-path', default='./transcript.json', help='Path to the transcript file.')
+@click.option('--contrib-path', default='./contributions.json', help='Path to the contributions file.')
+@click.option('--output-sql/--no-output-sql', default=True, help='Whether to output an SQL file.')
+@click.option('--output-json/--no-output-json', default=True, help='Whether to output a JSON file.')
+def main(trans_path: str, contrib_path: str, output_sql: bool, output_json: bool) -> None:
     verify_file_age(trans_path, contrib_path)
     trans_raw = load_transcript(trans_path)
     contrib_raw = load_contributions(contrib_path)
     transcript = transcript_to_participants(trans_raw)
     contributions = contributors_to_participants(contrib_raw)
     blacklist = get_blacklist(contributions, transcript)
-    json_blacklist = generate_blacklist_json(blacklist)
-    save_str(json_blacklist, './blacklist.json')
+    if output_json:
+        json_blacklist = generate_blacklist_json(blacklist)
+        save_str(json_blacklist, './blacklist.json')
     if output_sql:
         sql = generate_blacklist_flush_sql(blacklist)
         save_str(sql, './blacklist_flush.sql')
