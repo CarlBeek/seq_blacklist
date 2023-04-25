@@ -19,11 +19,11 @@ def verify_file_age(trans_path: str, contrib_path:str) -> None:
     contrib_creation_time = os.stat(contrib_path).st_birthtime
     assert trans_creation_time > contrib_creation_time
 
-def load_transcript(path: str) -> List[Any]:
+def load_transcript(path: str) -> Dict[Any, Any]:
     with open(path) as json_file:
         return json.load(json_file)
 
-def load_contributions(path: str) -> Dict[Any, Any]:
+def load_contributions(path: str) -> Sequence[Any]:
     with open(path) as json_file:
         return json.load(json_file)
 
@@ -33,7 +33,7 @@ def transcript_to_participants(transcript: Dict[Any, Any]) -> List[str]:
 def contributors_to_participants(contributors: Sequence[Any]) -> List[str]:
     return [contrib["uid"] for contrib in contributors]
 
-def get_blacklist(contributions: Sequence[str], transcript: Sequence[Any]) -> List[str]:
+def get_blacklist(contributions: Sequence[str], transcript: Sequence[str]) -> List[str]:
     contrib_set = set(contributions)
     trans_set = set(transcript)
     return list(contrib_set.difference(trans_set))
