@@ -5,7 +5,7 @@ import os
 from tqdm import tqdm
 from typing import Any, Dict, List, Sequence
 from web3 import Web3
-from ens import ENS
+from ens import ENS, exceptions
 
 W3_RPC_PROVIDER = 'https://rpc.ankr.com/eth'
 # W3_RPC_PROVIDER = 'https://rpc.flashbots.net'
@@ -33,7 +33,7 @@ def transcript_to_participants(transcript: Dict[Any, Any]) -> List[str]:
 def contributors_to_participants(contributors: Sequence[Any]) -> List[str]:
     return [contrib["uid"] for contrib in contributors]
 
-def get_blacklist(contributions: Dict[Any, Any], transcript: Sequence[Any]) -> List[str]:
+def get_blacklist(contributions: Sequence[str], transcript: Sequence[Any]) -> List[str]:
     contrib_set = set(contributions)
     trans_set = set(transcript)
     return list(contrib_set.difference(trans_set))
@@ -64,12 +64,18 @@ def clearlist_intersection(blacklist: List[str], clearlist: List[str]) -> List[s
 def calculate_clearlist_from_ens(blacklist: List[str], ens_cache_path: str) -> List[str]:
     w3_provider = Web3.HTTPProvider(W3_RPC_PROVIDER)
     ns = ENS(w3_provider)
-    get_ens_name = lambda id: ns.name(id[4:]) or ''
+
+    def get_ens_name(id: str) -> str:
+        try:
+            return ns.name(id[4:]) or ''
+        except exceptions.InvalidName:
+            return ''
 
     ens_cache = {}
     if os.path.exists(ens_cache_path):
         with open(ens_cache_path) as f:
             ens_cache = json.load(f)
+            ens_cache = dict(sorted(ens_cache.items(), key=lambda item: item[1]))  # Sort dict by values for easy reading
 
     def find_in_cache(p_id: str) -> str:
         if p_id not in ens_cache:
@@ -82,7 +88,7 @@ def calculate_clearlist_from_ens(blacklist: List[str], ens_cache_path: str) -> L
             continue
         ens = find_in_cache(p_id)
         if ens != '':
-            clearlist.append(ens)
+            clearlist.append(p_id)
         if i % 32 == 0:
             with open(ens_cache_path, 'w+') as f:
                 json.dump(ens_cache, f, indent=4)
